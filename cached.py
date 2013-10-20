@@ -24,12 +24,6 @@ def download_offices(refresh=False):
     for line in r.text:
       fout.write(line)
 
-def get_wait_time(office_id, refresh=True):
-  '''Downloads data for a given office ID number and returns the wait time'''
-  r = requests.get(DMV_OFFICES_URL + str(office_id))
-  assert r.status_code == 200, "HTTP error %s" % (r.status_code,)
-  return parse_wait(r.text)
-
 def parse_office_nums():
   '''Returns a list of the valid ID numbers for DMV offices'''
   foims = open('offices.xml','rb')
@@ -39,15 +33,17 @@ def parse_office_nums():
   results = []
   children = root.iter()
   first = children.next()
-  if first.tag != 'offices':
-    print "Ugh, the structure has changed!"
-    return []
+  assert first.tag == 'offices', "Ugh, the offices structure has changed!"
   for child in children:
-    if child.tag != 'fo_office':
-      print 'Bad child.', child
-      continue
+    assert child.tag == 'fo_office', 'Bad child. %s' % (child,)
     results.append(int(child.attrib['num'],10))
   return results
+
+def get_wait_time(office_id, refresh=True):
+  '''Downloads data for a given office ID number and returns the wait time'''
+  r = requests.get(DMV_OFFICES_URL + str(office_id))
+  assert r.status_code == 200, "HTTP error %s" % (r.status_code,)
+  return parse_wait(r.text)
 
 def parse_wait(data):
   '''Returns the non-appointment wait time in minutes'''
